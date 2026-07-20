@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binary Converter</title>
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --surface: #141414;
+            --text: #c0c0c0;
+            --accent: #ff6b35;
+            --green: #4ade80;
+            --yellow: #facc15;
+            --border: #2a2a2a;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+        }
+        .container {
+            width: 100%;
+            max-width: 780px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        h1 {
+            text-align: center;
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #666;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+        }
+        .mode-toggle {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        .mode-btn {
+            flex: 1;
+            padding: 10px;
+            background: #1a1a1a;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: #666;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        .mode-btn.active {
+            background: #2a1a0a;
+            border-color: var(--accent);
+            color: var(--accent);
+            box-shadow: 0 0 15px rgba(255, 107, 53, 0.2);
+        }
+        .mode-btn:hover:not(.active) { border-color: #444; color: #888; }
+        .mode-indicator {
+            font-size: 0.6rem;
+            color: #555;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        .file-upload-area {
+            margin-bottom: 10px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .file-upload-btn {
+            padding: 8px 14px;
+            background: #1a1a1a;
+            border: 1px dashed var(--border);
+            border-radius: 6px;
+            color: #888;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 0.7rem;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .file-upload-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .file-name {
+            font-size: 0.6rem;
+            color: var(--green);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .file-clear {
+            font-size: 0.65rem;
+            color: #ff4444;
+            cursor: pointer;
+            display: none;
+        }
+        .file-clear.show { display: inline; }
+        textarea {
+            width: 100%;
+            height: 140px;
+            background: #0d0d0d;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            padding: 14px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        textarea:focus { border-color: var(--accent); }
+        textarea::placeholder { color: #444; }
+        textarea.binary-mode {
+            letter-spacing: 1px;
+            word-spacing: 4px;
+        }
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            font-size: 0.65rem;
+            color: #555;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .stats-row span { color: var(--yellow); }
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+        button {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.25s;
+            background: #1a1a1a;
+            color: var(--text);
+        }
+        button.primary {
+            background: var(--accent);
+            color: #0a0a0a;
+            border-color: var(--accent);
+        }
+        button.primary:hover:not(:disabled) {
+            background: #ff8255;
+            box-shadow: 0 0 25px rgba(255, 107, 53, 0.4);
+        }
+        button:hover:not(:disabled) { border-color: #555; background: #222; }
+        button:disabled { opacity: 0.35; cursor: not-allowed; }
+        .progress-section { margin-top: 20px; display: none; }
+        .progress-section.active { display: block; }
+        .progress-bar-outer {
+            width: 100%;
+            height: 8px;
+            background: #1a1a1a;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        .progress-bar-inner {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent), var(--yellow));
+            border-radius: 4px;
+            transition: width 0.1s linear;
+        }
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            color: #666;
+        }
+        .progress-info .eta { color: var(--yellow); }
+        .log {
+            margin-top: 12px;
+            font-size: 0.65rem;
+            color: #444;
+            max-height: 70px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+        .log .line { opacity: 0.6; }
+        .log .line.highlight { color: var(--green); opacity: 1; }
+        .live-output {
+            margin-top: 12px;
+            padding: 10px;
+            background: #0d0d0d;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.6rem;
+            color: var(--green);
+            max-height: 100px;
+            overflow-y: auto;
+            word-break: break-all;
+            line-height: 1.4;
+            display: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .live-output.active { display: block; }
+        .live-output .cursor {
+            animation: blink 0.8s infinite;
+            color: var(--accent);
+            font-weight: bold;
+        }
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        .output-section { margin-top: 20px; display: none; }
+        .output-section.active { display: block; }
+        .output-label {
+            font-size: 0.65rem;
+            color: #666;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+        pre {
+            background: #0d0d0d;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.65rem;
+            line-height: 1.3;
+            color: var(--green);
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 300px;
+            overflow-y: auto;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        pre.binary-output {
+            letter-spacing: 1px;
+            word-spacing: 3px;
+        }
+        .output-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .output-actions button { flex: 1; font-size: 0.65rem; padding: 8px; }
+        .toast {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--green);
+            color: #0a0a0a;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+            opacity: 0;
+            transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 100;
+            pointer-events: none;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .instant-badge {
+            display: none;
+            text-align: center;
+            margin-bottom: 16px;
+            padding: 8px;
+            background: #1a3a1a;
+            border: 1px solid var(--green);
+            border-radius: 6px;
+            color: var(--green);
+            font-size: 0.65rem;
+            letter-spacing: 2px;
+        }
+        .instant-badge.active { display: block; }
+        .music-indicator {
+            display: none;
+            text-align: center;
+            margin-top: 8px;
+            font-size: 0.6rem;
+            color: #555;
+        }
+        .music-indicator.active { display: block; }
+        .music-indicator .note {
+            display: inline-block;
+            animation: bounce 0.6s infinite alternate;
+        }
+        .music-indicator .note:nth-child(2) { animation-delay: 0.2s; }
+        .music-indicator .note:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-5px); }
+        }
+        .validation-warning {
+            display: none;
+            color: #ff4444;
+            font-size: 0.6rem;
+            margin-top: 4px;
+        }
+        .validation-warning.active { display: block; }
+        .unicode-info {
+            font-size: 0.55rem;
+            color: #444;
+            margin-top: 4px;
+            text-align: right;
+        }
+        .unicode-info span { color: var(--yellow); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>▚ Binary Converter ▞</h1>
+        <p class="subtitle">Quantum bit-stream processing engine v6.1 — Full Unicode 🌍</p>
+
+        <div class="instant-badge" id="instantBadge">⚡ INSTANT MODE ACTIVE</div>
+
+        <div class="mode-toggle">
+            <button class="mode-btn active" id="modeNormalToBinary">📝 Text → Binary</button>
+            <button class="mode-btn" id="modeBinaryToNormal">💻 Binary → Text</button>
+        </div>
+        <div class="mode-indicator" id="modeIndicator">Enter text (including emojis 😊) to convert to 21-bit binary blocks</div>
+
+        <div class="file-upload-area">
+            <input type="file" id="fileInput" accept=".txt" style="display:none;">
+            <button class="file-upload-btn" id="fileUploadBtn">📎 Upload .txt File</button>
+            <span class="file-name" id="fileName"></span>
+            <span class="file-clear" id="fileClear">✕ Remove</span>
+        </div>
+
+        <textarea id="inputText" placeholder="Type or paste your text here... (emojis supported! 😊🎉🌍)"></textarea>
+        <div class="validation-warning" id="validationWarning">⚠ Invalid binary input. Each block must be exactly 21 bits (0s and 1s).</div>
+        <div class="unicode-info" id="unicodeInfo"></div>
+
+        <div class="stats-row">
+            <span>Input chars: <strong id="charCount">0</strong></span>
+            <span>Output chars: <strong id="outputCharCount">0</strong></span>
+            <span>Est. processing: <strong id="estTime">0s</strong></span>
+        </div>
+
+        <div class="btn-row">
+            <button class="primary" id="convertBtn">▶ Convert to Binary</button>
+            <button id="cancelBtn" disabled>✕ Cancel</button>
+        </div>
+
+        <div class="progress-section" id="progressSection">
+            <div class="progress-bar-outer">
+                <div class="progress-bar-inner" id="progressBar"></div>
+            </div>
+            <div class="progress-info">
+                <span id="progressPercent">0%</span>
+                <span class="eta" id="etaDisplay">--</span>
+            </div>
+            <div class="log" id="logArea"></div>
+            <div class="live-output" id="liveOutput">
+                <span id="liveOutputText"></span><span class="cursor">█</span>
+            </div>
+            <div class="music-indicator" id="musicIndicator">
+                <span class="note">♪</span><span class="note">♫</span><span class="note">♪</span> Loading.mp3
+            </div>
+        </div>
+
+        <div class="output-section" id="outputSection">
+            <p class="output-label">▼ OUTPUT</p>
+            <pre id="converterOutput"></pre>
+            <div class="output-actions">
+                <button id="copyBtn">📋 Copy to Clipboard</button>
+                <button id="downloadBtn">💾 Download .txt</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        (function() {
+            const inputText = document.getElementById('inputText');
+            const charCount = document.getElementById('charCount');
+            const outputCharCount = document.getElementById('outputCharCount');
+            const estTime = document.getElementById('estTime');
+            const convertBtn = document.getElementById('convertBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
+            const progressSection = document.getElementById('progressSection');
+            const progressBar = document.getElementById('progressBar');
+            const progressPercent = document.getElementById('progressPercent');
+            const etaDisplay = document.getElementById('etaDisplay');
+            const logArea = document.getElementById('logArea');
+            const liveOutput = document.getElementById('liveOutput');
+            const liveOutputText = document.getElementById('liveOutputText');
+            const musicIndicator = document.getElementById('musicIndicator');
+            const outputSection = document.getElementById('outputSection');
+            const converterOutput = document.getElementById('converterOutput');
+            const copyBtn = document.getElementById('copyBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const toast = document.getElementById('toast');
+            const instantBadge = document.getElementById('instantBadge');
+            const validationWarning = document.getElementById('validationWarning');
+            const unicodeInfo = document.getElementById('unicodeInfo');
+            const modeNormalToBinary = document.getElementById('modeNormalToBinary');
+            const modeBinaryToNormal = document.getElementById('modeBinaryToNormal');
+            const modeIndicator = document.getElementById('modeIndicator');
+            const fileInput = document.getElementById('fileInput');
+            const fileUploadBtn = document.getElementById('fileUploadBtn');
+            const fileName = document.getElementById('fileName');
+            const fileClear = document.getElementById('fileClear');
+
+            let isProcessing = false;
+            let cancelRequested = false;
+            let progressInterval = null;
+            let logTimeouts = [];
+            let audioElement = null;
+            let liveInterval = null;
+            let currentMode = 'normalToBinary';
+            let currentFileName = null;
+
+            const BITS_PER_CHAR = 21;
+
+            // --- Audio ---
+            function createAudio() {
+                audioElement = new Audio('Loading.mp3');
+                audioElement.loop = true;
+                audioElement.volume = 0.4;
+                audioElement.load();
+            }
+            createAudio();
+
+            function playMusic() {
+                if (audioElement) {
+                    audioElement.currentTime = 0;
+                    audioElement.play().then(() => musicIndicator.classList.add('active')).catch(() => musicIndicator.classList.remove('active'));
+                }
+            }
+
+            function stopMusic() {
+                if (audioElement) { audioElement.pause(); audioElement.currentTime = 0; }
+                musicIndicator.classList.remove('active');
+            }
+
+            // --- Mode ---
+            function setMode(mode) {
+                currentMode = mode;
+                if (mode === 'normalToBinary') {
+                    modeNormalToBinary.classList.add('active');
+                    modeBinaryToNormal.classList.remove('active');
+                    inputText.classList.remove('binary-mode');
+                    inputText.placeholder = 'Type or paste your text here... (emojis supported! 😊🎉🌍)';
+                    convertBtn.textContent = '▶ Convert to Binary';
+                    modeIndicator.textContent = 'Enter text (including emojis 😊) to convert to ' + BITS_PER_CHAR + '-bit binary blocks';
+                    validationWarning.classList.remove('active');
+                } else {
+                    modeBinaryToNormal.classList.add('active');
+                    modeNormalToBinary.classList.remove('active');
+                    inputText.classList.add('binary-mode');
+                    inputText.placeholder = 'Paste ' + BITS_PER_CHAR + '-bit binary blocks here... (spaces between blocks)';
+                    convertBtn.textContent = '▶ Convert to Text';
+                    modeIndicator.textContent = 'Enter ' + BITS_PER_CHAR + '-bit binary blocks — timing based on decoded character count';
+                }
+                updateStats();
+                validateBinaryInput();
+            }
+
+            modeNormalToBinary.addEventListener('click', () => setMode('normalToBinary'));
+            modeBinaryToNormal.addEventListener('click', () => setMode('binaryToNormal'));
+
+            // --- File upload ---
+            fileUploadBtn.addEventListener('click', () => fileInput.click());
+            fileClear.addEventListener('click', () => {
+                fileInput.value = ''; currentFileName = null;
+                fileName.textContent = ''; fileClear.classList.remove('show');
+                inputText.value = ''; updateStats(); validateBinaryInput();
+            });
+            fileInput.addEventListener('change', () => {
+                const file = fileInput.files[0];
+                if (!file) return;
+                currentFileName = file.name;
+                fileName.textContent = '📄 ' + file.name;
+                fileClear.classList.add('show');
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    inputText.value = e.target.result;
+                    updateStats();
+                    validateBinaryInput();
+                    showToast('📎 File loaded: ' + file.name);
+                };
+                reader.onerror = () => showToast('❌ Error reading file');
+                reader.readAsText(file);
+            });
+
+            // --- Validation ---
+            function validateBinaryInput() {
+                if (currentMode === 'binaryToNormal') {
+                    const text = inputText.value.trim();
+                    if (text.length > 0) {
+                        const blocks = text.split(/\s+/).filter(b => b.length > 0);
+                        const allValid = blocks.every(b => b.length === BITS_PER_CHAR && /^[01]+$/.test(b));
+                        if (!allValid) {
+                            validationWarning.classList.add('active');
+                            validationWarning.textContent = '⚠ Each block must be exactly ' + BITS_PER_CHAR + ' bits (0s and 1s). Found blocks with different lengths.';
+                        } else {
+                            validationWarning.classList.remove('active');
+                        }
+                    } else {
+                        validationWarning.classList.remove('active');
+                    }
+                } else {
+                    validationWarning.classList.remove('active');
+                }
+            }
+
+            inputText.addEventListener('input', () => {
+                updateStats();
+                validateBinaryInput();
+            });
+
+            // --- Instant mode ---
+            function checkInstantMode() {
+                if (window.location.hash.includes('5155')) return true;
+                if (window.location.search.includes('instant') || window.location.hash.includes('instant')) return true;
+                if (window.self !== window.top) return true;
+                return false;
+            }
+            const instantMode = checkInstantMode();
+            if (instantMode) {
+                instantBadge.classList.add('active');
+                const hashContent = window.location.hash.replace('#5155', '').replace('#instant', '');
+                if (hashContent) { inputText.value = decodeURIComponent(hashContent); updateStats(); validateBinaryInput(); }
+            }
+
+            function showToast(msg, dur = 2500) {
+                toast.textContent = msg; toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), dur);
+            }
+
+            // --- Time calculation ---
+            function getProcessingTimeSeconds(charLength) {
+                if (charLength <= 0) return 0;
+                const points = [[5, 3], [50, 10], [500, 30], [5000, 120], [50000, 660]];
+                if (charLength <= points[0][0]) return points[0][1];
+                if (charLength >= points[points.length-1][0]) return points[points.length-1][1];
+                for (let i = 0; i < points.length - 1; i++) {
+                    const [x1, y1] = points[i], [x2, y2] = points[i+1];
+                    if (charLength >= x1 && charLength <= x2) {
+                        const logLen = Math.log(charLength), logX1 = Math.log(x1), logX2 = Math.log(x2);
+                        const logY1 = Math.log(y1), logY2 = Math.log(y2);
+                        const t = (logLen - logX1) / (logX2 - logX1);
+                        return Math.round(Math.exp(logY1 + t * (logY2 - logY1)));
+                    }
+                }
+                return points[points.length-1][1];
+            }
+
+            function formatTime(seconds) {
+                if (seconds === 0) return '0s';
+                if (seconds < 60) return Math.round(seconds) + 's';
+                return Math.floor(seconds / 60) + 'm ' + Math.round(seconds % 60) + 's';
+            }
+
+            // --- FIXED: Count output characters for timing ---
+            function getProcessingCharCount() {
+                const text = inputText.value;
+                if (currentMode === 'normalToBinary') {
+                    // Number of Unicode characters in input
+                    return [...text].length;
+                } else {
+                    // Binary mode: count how many decoded characters it will produce
+                    const blocks = text.trim().split(/\s+/).filter(b => b.length > 0);
+                    return blocks.length;
+                }
+            }
+
+            function updateStats() {
+                const text = inputText.value;
+                const inputChars = [...text].length;
+                const outputChars = getProcessingCharCount();
+                charCount.textContent = inputChars;
+                outputCharCount.textContent = outputChars;
+
+                if (currentMode === 'normalToBinary' && text.length > 0) {
+                    const utf16Length = text.length;
+                    if (utf16Length !== inputChars) {
+                        unicodeInfo.innerHTML = `<span>${inputChars}</span> Unicode chars → <span>${inputChars}</span> binary blocks — ${BITS_PER_CHAR} bits each`;
+                    } else {
+                        unicodeInfo.innerHTML = `<span>${inputChars}</span> chars → <span>${inputChars}</span> binary blocks — ${BITS_PER_CHAR} bits each`;
+                    }
+                } else if (currentMode === 'binaryToNormal' && text.trim().length > 0) {
+                    const blocks = text.trim().split(/\s+/).filter(b => b.length > 0);
+                    unicodeInfo.innerHTML = `<span>${blocks.length}</span> binary blocks → <span>${blocks.length}</span> decoded characters`;
+                } else {
+                    unicodeInfo.innerHTML = '';
+                }
+
+                if (instantMode) {
+                    estTime.textContent = '0s (instant)';
+                    estTime.style.color = '#4ade80';
+                } else {
+                    const time = getProcessingTimeSeconds(outputChars);
+                    estTime.textContent = formatTime(time);
+                    estTime.style.color = '#facc15';
+                }
+            }
+
+            // --- Consistent 21-bit encoding/decoding ---
+            function textToBinary(text) {
+                if (text === '5155') {
+                    return [...'5155 INSTANT'].map(c => c.codePointAt(0).toString(2).padStart(BITS_PER_CHAR, '0')).join(' ');
+                }
+                return [...text].map(char => {
+                    const codePoint = char.codePointAt(0);
+                    return codePoint.toString(2).padStart(BITS_PER_CHAR, '0');
+                }).join(' ');
+            }
+
+            function binaryToText(binary) {
+                const cleaned = binary.trim().replace(/\s+/g, ' ');
+                const blocks = cleaned.split(' ').filter(b => b.length > 0);
+                let result = '';
+                for (const block of blocks) {
+                    if (block.length === BITS_PER_CHAR && /^[01]+$/.test(block)) {
+                        const codePoint = parseInt(block, 2);
+                        if (codePoint <= 0x10FFFF) {
+                            result += String.fromCodePoint(codePoint);
+                        } else {
+                            result += '�';
+                        }
+                    } else if (block.length > 0 && /^[01]+$/.test(block)) {
+                        const padded = block.padStart(BITS_PER_CHAR, '0').slice(0, BITS_PER_CHAR);
+                        const codePoint = parseInt(padded, 2);
+                        if (codePoint <= 0x10FFFF) {
+                            result += String.fromCodePoint(codePoint);
+                        } else {
+                            result += '�';
+                        }
+                    }
+                }
+                return result;
+            }
+
+            function doConversion(text) {
+                return currentMode === 'normalToBinary' ? textToBinary(text) : binaryToText(text);
+            }
+
+            function getOutputLabel() {
+                return currentMode === 'normalToBinary' ? '▼ BINARY OUTPUT (' + BITS_PER_CHAR + ' bits per char)' : '▼ TEXT OUTPUT';
+            }
+
+            function getOutputClass() {
+                return currentMode === 'normalToBinary' ? 'binary-output' : '';
+            }
+
+            // --- Live output stream ---
+            function startLiveOutput(fullOutput, charCount) {
+                liveOutput.classList.add('active');
+                liveOutputText.textContent = '';
+                const chars = fullOutput.split('');
+                const totalDuration = getProcessingTimeSeconds(charCount) * 1000;
+                const charInterval = Math.max(1, totalDuration / chars.length);
+                let index = 0;
+                liveInterval = setInterval(() => {
+                    if (cancelRequested || index >= chars.length) { clearInterval(liveInterval); return; }
+                    const chunkSize = Math.max(1, Math.floor(chars.length / 200));
+                    liveOutputText.textContent += chars.slice(index, index + chunkSize).join('');
+                    index += chunkSize;
+                    liveOutput.scrollTop = liveOutput.scrollHeight;
+                }, charInterval * Math.max(1, Math.floor(chars.length / 200)));
+            }
+
+            function stopLiveOutput() {
+                if (liveInterval) clearInterval(liveInterval);
+                liveOutput.classList.remove('active');
+                liveOutputText.textContent = '';
+            }
+
+            // --- Instant convert ---
+            function instantConvert(text) {
+                const result = doConversion(text);
+                converterOutput.textContent = result;
+                converterOutput.className = getOutputClass();
+                document.querySelector('.output-label').textContent = getOutputLabel();
+                outputSection.classList.add('active');
+                progressSection.classList.remove('active');
+                showToast('⚡ Instant conversion complete!');
+            }
+
+            // --- Normal processing (FIXED: timing based on output char count) ---
+            function startNormalConvert(text) {
+                const result = doConversion(text);
+                const outputChars = getProcessingCharCount();
+                const totalDuration = getProcessingTimeSeconds(outputChars) * 1000;
+                const startTime = Date.now();
+
+                progressSection.classList.add('active');
+                outputSection.classList.remove('active');
+                logArea.innerHTML = '';
+                progressBar.style.width = '0%';
+                progressPercent.textContent = '0%';
+                etaDisplay.textContent = formatTime(totalDuration / 1000);
+                cancelRequested = false;
+                isProcessing = true;
+                convertBtn.disabled = true;
+                cancelBtn.disabled = false;
+                playMusic();
+                startLiveOutput(result, outputChars);
+
+                const logMessages = currentMode === 'normalToBinary' ? [
+                    'Initializing ' + BITS_PER_CHAR + '-bit Unicode pipeline...',
+                    'Allocating quantum registers for ' + outputChars + ' characters...',
+                    'Parsing code points...',
+                    'Mapping to fixed-width binary...',
+                    'Error correction pass...',
+                    'Optimizing output stream...',
+                    'Final verification...',
+                    'Almost complete...'
+                ] : [
+                    'Initializing ' + BITS_PER_CHAR + '-bit decoder for ' + outputChars + ' characters...',
+                    'Allocating decode buffers...',
+                    'Splitting ' + outputChars + ' binary blocks...',
+                    'Reconstructing code points...',
+                    'Validating Unicode range...',
+                    'Assembling text stream...',
+                    'Final verification...',
+                    'Almost complete...'
+                ];
+
+                const logInterval = totalDuration / (logMessages.length + 1);
+                logTimeouts = logMessages.map((msg, i) => {
+                    return setTimeout(() => {
+                        if (cancelRequested) return;
+                        const div = document.createElement('div');
+                        div.className = 'line' + (i === logMessages.length - 1 ? ' highlight' : '');
+                        div.textContent = '> ' + msg;
+                        logArea.appendChild(div);
+                        logArea.scrollTop = logArea.scrollHeight;
+                    }, (i + 1) * logInterval);
+                });
+
+                let currentUpdate = 0;
+                progressInterval = setInterval(() => {
+                    if (cancelRequested) { clearInterval(progressInterval); return; }
+                    currentUpdate++;
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min((elapsed / totalDuration) * 100, 100);
+                    progressBar.style.width = progress + '%';
+                    progressPercent.textContent = Math.round(progress) + '%';
+                    etaDisplay.textContent = '~' + formatTime(Math.max(0, totalDuration - elapsed) / 1000);
+                    if (progress >= 100) { clearInterval(progressInterval); if (!cancelRequested) finishWithResult(result); }
+                }, 100);
+
+                setTimeout(() => {
+                    if (isProcessing && !cancelRequested) {
+                        clearInterval(progressInterval);
+                        progressBar.style.width = '100%';
+                        progressPercent.textContent = '100%';
+                        etaDisplay.textContent = '0s';
+                        finishWithResult(result);
+                    }
+                }, totalDuration + 500);
+            }
+
+            function finishWithResult(result) {
+                stopMusic(); stopLiveOutput();
+                converterOutput.textContent = result;
+                converterOutput.className = getOutputClass();
+                document.querySelector('.output-label').textContent = getOutputLabel();
+                outputSection.classList.add('active');
+                finishProcessing(true);
+            }
+
+            function finishProcessing(success) {
+                isProcessing = false;
+                convertBtn.disabled = false;
+                cancelBtn.disabled = true;
+                cancelRequested = false;
+                if (progressInterval) clearInterval(progressInterval);
+                if (liveInterval) clearInterval(liveInterval);
+                logTimeouts.forEach(t => clearTimeout(t));
+                stopMusic();
+                if (!success) { progressSection.classList.remove('active'); stopLiveOutput(); }
+            }
+
+            // --- Buttons ---
+            convertBtn.addEventListener('click', () => {
+                const text = inputText.value;
+                if (!text.trim()) { showToast('⚠ Please enter text or upload a file first.'); return; }
+                if (currentMode === 'binaryToNormal') {
+                    const blocks = text.trim().split(/\s+/).filter(b => b.length > 0);
+                    if (!blocks.every(b => b.length === BITS_PER_CHAR && /^[01]+$/.test(b))) {
+                        showToast('⚠ Each block must be exactly ' + BITS_PER_CHAR + ' bits.');
+                        return;
+                    }
+                }
+                if (instantMode) { instantConvert(text); } else { startNormalConvert(text); }
+            });
+
+            cancelBtn.addEventListener('click', () => {
+                if (isProcessing) {
+                    cancelRequested = true;
+                    clearInterval(progressInterval); clearInterval(liveInterval);
+                    logTimeouts.forEach(t => clearTimeout(t));
+                    stopMusic(); stopLiveOutput();
+                    const div = document.createElement('div');
+                    div.className = 'line highlight';
+                    div.textContent = '❌ Conversion cancelled.';
+                    logArea.appendChild(div);
+                    finishProcessing(false);
+                }
+            });
+
+            copyBtn.addEventListener('click', () => {
+                const text = converterOutput.textContent;
+                if (!text) return;
+                navigator.clipboard.writeText(text).then(() => showToast('📋 Copied!')).catch(() => showToast('❌ Copy failed'));
+            });
+
+            downloadBtn.addEventListener('click', () => {
+                const text = converterOutput.textContent;
+                if (!text) return;
+                const ext = currentMode === 'normalToBinary' ? 'binary-output.txt' : 'text-output.txt';
+                const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = ext; a.click();
+                URL.revokeObjectURL(url);
+                showToast('💾 Downloaded as ' + ext);
+            });
+
+            updateStats();
+            if (instantMode) {
+                setTimeout(() => showToast('⚡ Instant mode active'), 500);
+                if (inputText.value.trim()) setTimeout(() => instantConvert(inputText.value), 300);
+            }
+        })();
+    </script>
+</body>
+</html>
